@@ -32,6 +32,4 @@ O envio de email será seguida a seguinte abordagem:
 # TODO: Adicionar CI/CD
 # TODO: Adicionar cache
 # TODO: Adicionar nginx como servidor no docker-compose
-# TODO: Adicionar sistema de créditos para os usuários
-# TODO: Usar celery beat para agendar tarefa de limpeza de tarefas antigas
 # TODO: Adicionar sistema de notificação por email

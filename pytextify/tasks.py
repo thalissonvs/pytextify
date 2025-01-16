@@ -12,7 +12,6 @@ from redis import Redis
 from pytextify.settings import Settings
 
 settings = Settings()
-
 celery_app = Celery(broker=settings.BROKER_URL, backend=settings.BACKEND_URL)
 
 
@@ -20,7 +19,7 @@ celery_app = Celery(broker=settings.BROKER_URL, backend=settings.BACKEND_URL)
 def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
         crontab(hour=0, minute=0),
-        clear_redis.s(),
+        clear_backend.s(),
         name='clear_redis',
     )
 
@@ -35,7 +34,7 @@ def extract_text_from_image(image_b64: str):
 
 
 @celery_app.task
-def clear_redis():
+def clear_backend():
     redis = Redis.from_url(settings.BACKEND_URL)
     for key in redis.keys('celery-task-meta-*'):
         task_id = key.decode('utf-8').replace('celery-task-meta-', '')
