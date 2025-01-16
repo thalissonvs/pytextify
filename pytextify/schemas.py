@@ -10,6 +10,7 @@ class ImageSchema(BaseModel):
 class TaskSchema(BaseModel):
     task_id: str
     status: str
+    credits: int
 
 
 class TaskResultSchema(TaskSchema):
