@@ -83,9 +83,10 @@ def confirm_user(token: str, session: T_Session):
 
     confirmation_token.is_used = True
     confirmation_token.user.is_active = True
+    confirmation_token.user.credits = 10
     session.commit()
 
-    return {'message': 'User confirmed'}
+    return {'message': 'User confirmed!'}
 
 
 @router.put('/{user_id}', response_model=UserPublic)
