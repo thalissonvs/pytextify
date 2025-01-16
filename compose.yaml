@@ -11,3 +11,8 @@ services:
     command: celery -A pytextify.tasks worker --loglevel=info
     volumes:
       - .:/app
+  beat:
+    build: .
+    command: celery -A pytextify.tasks beat --loglevel=info
+    volumes:
+      - .:/app
