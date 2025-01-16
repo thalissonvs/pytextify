@@ -1,48 +1,16 @@
-from enum import Enum
-from http import HTTPStatus
-
-from celery.result import AsyncResult
 from fastapi import FastAPI
 
-from pytextify.schemas import ImageSchema, TaskResultSchema, TaskSchema
-from pytextify.tasks import celery_app, extract_text_from_image
+from pytextify.routers import auth, textify, users
 
 app = FastAPI()
-
-
-class TaskStatus(str, Enum):
-    PROCESSING = 'processing'
-    DONE = 'done'
-    FAILED = 'failed'
-
-
-@app.post(
-    '/textify', response_model=TaskSchema, status_code=HTTPStatus.ACCEPTED
-)
-def convert_image_to_text(image: ImageSchema):
-    result = extract_text_from_image.delay(image.image_base64)
-    return {'task_id': result.id, 'status': TaskStatus.PROCESSING}
-
-
-@app.get('/textify/{task_id}', response_model=TaskResultSchema)
-def get_task_result(task_id: str):
-    result = AsyncResult(task_id, app=celery_app)
-    if result.ready():
-        task_result = result.result if result.successful() else result.info
-        task_status = (
-            TaskStatus.DONE if result.successful() else TaskStatus.FAILED
-        )
-        return {
-            'task_id': task_id,
-            'status': task_status,
-            'result': task_result,
-        }
-    return {'task_id': task_id, 'status': 'processing'}
+app.include_router(auth.router)
+app.include_router(textify.router)
+app.include_router(users.router)
 
 
 # TODO: Criar sistema de autenticação
 # TODO: Criar sistema de rate limit
-# TODO: Adicionar limite de quantas tarefas cada usuário pode solicitar ao mesmo tempo
+# TODO: Adicionar limite de quantas tasks cada usuário pode solicitar
 # TODO: Adicionar limite de tamanho de imagem
 # TODO: Criar Enums para os status das tarefas
 # TODO: Adicionar testes
