@@ -9,6 +9,8 @@ from celery.schedules import crontab
 from PIL import Image
 from redis import Redis
 
+from pytextify.database import get_session
+from pytextify.models import User
 from pytextify.settings import Settings
 
 settings = Settings()
@@ -21,6 +23,11 @@ def setup_periodic_tasks(sender, **kwargs):
         crontab(hour=0, minute=0),
         clear_backend.s(),
         name='clear_redis',
+    )
+    sender.add_periodic_task(
+        crontab(hour=0, minute=0),
+        restore_users_credits.s(),
+        name='restore_users_credits',
     )
 
 
@@ -43,3 +50,13 @@ def clear_backend():
             days=1
         ):
             redis.delete(key)
+
+
+@celery_app.task
+def restore_users_credits():
+    session = next(get_session())
+    users = session.query(User).all()
+    for user in users:
+        user.credits = 10
+    session.commit()
+    session.close()
