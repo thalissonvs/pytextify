@@ -39,8 +39,7 @@ def clear_backend():
     for key in redis.keys('celery-task-meta-*'):
         task_id = key.decode('utf-8').replace('celery-task-meta-', '')
         task = AsyncResult(task_id, app=celery_app)
-        if (
-            task.successful()
-            and task.date_done < datetime.now() - timedelta(days=1)
+        if task.successful() and task.date_done < datetime.now() - timedelta(
+            days=1
         ):
             redis.delete(key)

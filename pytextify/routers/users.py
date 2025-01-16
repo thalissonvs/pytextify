@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from pytextify.database import get_session
-from pytextify.models import User
+from pytextify.models import ConfirmationToken, User
 from pytextify.schemas import Message, UserList, UserPublic, UserSchema
 from pytextify.security import (
     get_current_user,
@@ -19,7 +19,7 @@ T_CurrentUser = Annotated[User, Depends(get_current_user)]
 router = APIRouter(prefix='/users', tags=['users'])
 
 
-@router.post('/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
+@router.post('/', status_code=HTTPStatus.CREATED, response_model=Message)
 def create_user(
     user: UserSchema,
     session: T_Session,
@@ -48,10 +48,44 @@ def create_user(
         password=get_password_hash(user.password),
     )
     session.add(db_user)
-    session.commit()
-    session.refresh(db_user)
+    session.flush()
 
-    return db_user
+    confirmation_token = ConfirmationToken.generate_token(db_user.id)
+    session.add(confirmation_token)
+    session.commit()
+
+    return {'message': 'Please check your email to confirm your registration.'}
+
+
+@router.get('/confirm/{token}', response_model=Message)
+def confirm_user(token: str, session: T_Session):
+    confirmation_token = session.scalar(
+        select(ConfirmationToken).where(ConfirmationToken.token == token)
+    )
+
+    if not confirmation_token:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail='Confirmation token not found',
+        )
+
+    if confirmation_token.is_used:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail='Confirmation token already used',
+        )
+
+    if confirmation_token.expires_at < confirmation_token.created_at:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail='Confirmation token expired',
+        )
+
+    confirmation_token.is_used = True
+    confirmation_token.user.is_active = True
+    session.commit()
+
+    return {'message': 'User confirmed'}
 
 
 @router.put('/{user_id}', response_model=UserPublic)

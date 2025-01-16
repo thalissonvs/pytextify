@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from sqlalchemy import func
+from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, registry, relationship
 
 table_registry = registry()
@@ -25,7 +25,7 @@ class User:
     )
 
     confirmation_token: Mapped['ConfirmationToken'] = relationship(
-        'ConfirmationToken', back_populates='user', uselist=False
+        init=False, back_populates='user', uselist=False, cascade='all, delete'
     )
 
 
@@ -35,7 +35,7 @@ class ConfirmationToken:
 
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
     token: Mapped[str]
-    user_id: Mapped[int] = mapped_column(init=False, foreign_key='users.id')
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     created_at: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now()
     )
@@ -43,7 +43,7 @@ class ConfirmationToken:
     is_used: Mapped[bool] = mapped_column(default=False)
 
     user: Mapped[User] = relationship(
-        'User', back_populates='confirmation_token'
+        init=False, back_populates='confirmation_token'
     )
 
     @classmethod
